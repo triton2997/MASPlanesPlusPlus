@@ -306,7 +306,7 @@ public final class Configuration {
             }
         }
 
-        if (values.get("planes").equals("liam")) {
+        /*if (values.get("planes").equals("liam")) {
             eaglePower = Double.valueOf(settings.getProperty("eagle-power"));
             values.put("eagle-power", String.valueOf(eaglePower));
             if(eaglePower < 0 ||eaglePower > 1) {
@@ -330,7 +330,7 @@ public final class Configuration {
             if(eagleSpeed < 0 ||eagleSpeed > 1) {
                 throw new IllegalArgumentException("Scout speed level must be between 0 and 1.");
             }
-        }
+        }*/
 
     }
 
