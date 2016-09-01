@@ -37,10 +37,11 @@
 package es.csic.iiia.planes.evaluation;
 
 import es.csic.iiia.planes.*;
+import es.csic.iiia.planes.cli.Configuration;
 
 /**
  * Evaluation that computes costs based on the distance between the plane and
- * the task to be completed.
+ * the task to be completed, as well as agent's current battery state.
  *
  * @author Guillermo Bautista <gbau@mit.edu>
  * Created by owner on 7/29/2016.
@@ -50,8 +51,9 @@ public class PercentageBatteryEvaluation implements EvaluationStrategy<Plane> {
     /**
      * Computes the cost for <em>plane</em> to perform <em>task</em>.
      * <p/>
-     * The cost is computed by calculating the distance between the plane and
-     * the task.
+     * he cost is computed by calculating the distance between the plane and
+     * the task. The plane's battery is taken into account though, as well as
+     * the time remaining in the simulation duration.
      *
      * @param plane plane that would perform the task.
      * @param task task that is being evaluated.
@@ -62,16 +64,15 @@ public class PercentageBatteryEvaluation implements EvaluationStrategy<Plane> {
         final Location pl = plane.getLocation();
         final Location tl = task.getLocation();
         final World w = plane.getWorld();
+        final Configuration c = w.getConfig();
 
         final long travelCost = (long)Math.ceil(pl.distance(tl)/plane.getSpeed());
         final long batteryRemaining = plane.getBattery().getEnergy() - travelCost;
         final long timeRemaining = w.getDuration() - w.getTime() - travelCost;
-        final double timeToRescue = timeRemaining*w.getTimeRescuePenalty();
-        final double powerToRescue = batteryRemaining*w.getRescuePowerPenalty();
+        final double timeToRescue = timeRemaining*c.getRescueTimePenalty();
+        final double powerToRescue = batteryRemaining*c.getRescuePowerPenalty();
 
-
-
-        return w.getPowerFactor()*(travelCost + powerToRescue) + w.getTimeFactor()*(travelCost + timeToRescue);
+        return c.getPowerFactor()*(travelCost + powerToRescue) + c.getTimeFactor()*(travelCost + timeToRescue);
     }
 
 }

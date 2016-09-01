@@ -41,6 +41,7 @@ import es.csic.iiia.planes.definition.DOperator;
 import es.csic.iiia.planes.definition.DPlane;
 import es.csic.iiia.planes.definition.DProblem;
 import es.csic.iiia.planes.definition.DStation;
+import es.csic.iiia.planes.cli.Configuration;
 import es.csic.iiia.planes.messaging.Message;
 import java.util.ArrayList;
 import java.util.List;
@@ -369,13 +370,7 @@ public abstract class AbstractWorld implements World {
         tasks.remove(t);
     }
 
-    public double getRescuePowerPenalty() { return 0.01; }
-
-    public double getTimeRescuePenalty() { return 0.001; }
-
-    public double getPowerFactor() { return 0.4; }
-
-    public double getTimeFactor() { return 0.6; }
+    public Configuration getConfig() { return getFactory().getConfiguration(); }
 
     @Override
     public Station getNearestStation(Location location) {
