@@ -1,5 +1,7 @@
 package es.csic.iiia.planes;
 
+import es.csic.iiia.planes.liam.LIAMBehavior;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -25,26 +27,69 @@ public class SARPlane extends AbstractPlane {
      */
     private Type type = Type.SCOUT;
 
-    /** TODO: Set this using Configuration
+    /**
      * Percentage power level at which plane switches to EAGLE type.
      */
-    private long eagleEnergy = 4000;
+    private long eagleEnergy;
 
-    /** TODO: Set this using Configuration
+    /**
      * Percentage power level at which plane switches to STANDBY type.
      */
-    private long standbyEnergy = 750;
+    private long standbyEnergy;
 
-    /** TODO: Set this using Configuration
+    /**
      * Number of blocks that a Plane tries to stay away from other
      * active UAV's while in Eagle or Scout mode.
      */
     private int eagleCrowdDistance;
 
     /**
-     * Agent maximum speed in meters per tenth of second
+     * Preferred range that an Eagle-type plane will try to stay within
+     * for the next available block to search.
+     */
+    private double eagleJumpDistance;
+
+    /**
+     * Preferred range that a Scout-type plane will try to stay within
+     * for the next available block to search.
+     */
+    private double scoutJumpDistance;
+
+    /**
+     * Penalty incurred on battery power for searching a block.
+     */
+    private long searchPowerPenalty;
+
+    /**
+     * Penalty incurred on waiting time for searching a block.
+     */
+    private long searchTimePenalty;
+
+    /**
+     * Penalty incurred on battery power for rescuing a survivor.
+     */
+    private double rescuePowerPenalty;
+
+    /**
+     * Penalty incurred on waiting time for rescuing a survivor.
+     */
+    private double rescueTimePenalty;
+
+    /**
+     * Agent maximum speed in meters per tenth of second.
+     * This is the speed at which Standby planes travel.
      */
     private double maxSpeed = -1;
+
+    /**
+     * Eagle-type speed as a percentage of maximum speed.
+     */
+    private double eagleSpeedPercentage;
+
+    /**
+     * Scout-type speed as a percentage of maximum speed.
+     */
+    private double scoutSpeedPercentage;
 
     /**
      * Tells the system whether the agent's initial destination has been initialized.
@@ -62,19 +107,30 @@ public class SARPlane extends AbstractPlane {
      */
     private Region nextRegion = null;
 
+    /**
+     * Time in tenths of a second before plane switches
+     * to Rescue Type.
+     */
+    private long rescueTime;
 
     /**
      * Default constructor
      *
      * @param location initial location of the plane
      */
-    public SARPlane(Location location) { super(location); }
+    public SARPlane(Location location) {
+        super(location);
+        addBehavior(new LIAMBehavior(this));
+    }
 
     @Override
     public void initialize() {
         super.initialize();
-        //TODO: Make this set by Configuration in Abstract World
-        setEagleCrowdDistance(4);
+        searchPowerPenalty = getWorld().getConfig().getSearchPowerPenalty();
+        searchTimePenalty = getWorld().getConfig().getSearchTimePenalty();
+        rescuePowerPenalty = getWorld().getConfig().getRescuePowerPenalty();
+        rescueTimePenalty = getWorld().getConfig().getRescueTimePenalty();
+        rescueTime = getWorld().getConfig().getRescueTime();
 
         if(initialized) {
             if (type == Type.SCOUT) {
@@ -84,7 +140,6 @@ public class SARPlane extends AbstractPlane {
             else {
                 setNextBlockBasic();
             }
-            //System.out.print("Initialized a plane.\n");
             setDestination(nextBlock.getCenter());
         }
         else{
@@ -109,15 +164,43 @@ public class SARPlane extends AbstractPlane {
     public void setType(Type t) {
         this.type = t;
         if (t == Type.SCOUT) {
-            setSpeed(maxSpeed*1/3);
+            setSpeed(maxSpeed*scoutSpeedPercentage);
         } else if (t == Type.EAGLE) {
-            setSpeed(maxSpeed*2/3);
+            setSpeed(maxSpeed*eagleSpeedPercentage);
         } else {
             setSpeed(maxSpeed);
         }
     }
 
-    private void setEagleCrowdDistance(int eagleCrowdDistance) { this.eagleCrowdDistance = eagleCrowdDistance; }
+    private int getEagleCrowdDistance() { return eagleCrowdDistance; }
+
+    public void setEagleCrowdDistance(int eagleCrowdDistance) { this.eagleCrowdDistance = eagleCrowdDistance; }
+
+    public void setEagleJumpDistance(double eagleJumpDistance) { this.eagleJumpDistance = eagleJumpDistance; }
+
+    public void setScoutJumpDistance(double scoutJumpDistance) {
+        this.scoutJumpDistance = scoutJumpDistance;
+    }
+
+    private void setEagleEnergy (long eagleEnergy) { this.eagleEnergy = eagleEnergy; }
+
+    private void setStandbyEnergy(long standbyEnergy) { this.standbyEnergy = standbyEnergy; }
+
+    public void setEagleSpeedPercentage(double eagleSpeedPercentage) {
+        this.eagleSpeedPercentage = eagleSpeedPercentage;
+    }
+
+    public void setScoutSpeedPercentage(double scoutSpeedPercentage) {
+        this.scoutSpeedPercentage = scoutSpeedPercentage;
+    }
+
+    @Override
+    public void setBattery(Battery battery) {
+        super.setBattery(battery);
+        //TODO: Maybe just have method for getting configuration from factory
+        setEagleEnergy((long)(getWorld().getConfig().getEaglePower()*battery.getCapacity()));
+        setStandbyEnergy((long)(getWorld().getConfig().getStandbyPower()*battery.getCapacity()));
+    }
 
     @Override
     public List<Location> getPlannedLocations() {
@@ -132,7 +215,7 @@ public class SARPlane extends AbstractPlane {
     public void step() {
         //TODO: Make this time a set percentage of time in the configuration
         //Switch to rescuer at 75% of duration
-        if (getWorld().getTime()%getWorld().getDuration() >= getWorld().getDuration()*.75 && type != Type.RESCUER && type != Type.BASIC) {
+        if (getWorld().getTime()%getWorld().getDuration() >= rescueTime && type != Type.RESCUER && type != Type.BASIC) {
             setType(Type.RESCUER);
         }
         if (state == State.CHARGING) {
@@ -149,14 +232,11 @@ public class SARPlane extends AbstractPlane {
                 else {
                     if (type == Type.SCOUT) {
                         if(setNextRegion()) {
-                            //System.out.print("Scout:\nFound unassigned region, assigning new block:\n");
                             setNextBlock(nextRegion);
                         }
                         else {
-                            //System.out.print("Scout:\nNo unassigned region, changing to Eagle:\n");
                             setType(Type.EAGLE);
                             if (!setNextBlockEagle()) {
-                                //System.out.print("Eagle:\nNo unassigned blocks, switching to Standby:\n");
                                 setType(Type.STANDBY);
                                 //Since Standby Planes don't search, they only need to wait for a rescue request.
                                 //Otherwise, they idle in place.
@@ -214,18 +294,10 @@ public class SARPlane extends AbstractPlane {
                 final Block completed = nextBlock;
 
                 if(type == Type.SCOUT) {
-//                    long startTime = System.currentTimeMillis();
                     stepScout(completed);
-//                    if ( System.currentTimeMillis()-startTime > 50 ) {
-//                        System.out.print("Scout Time: "+(System.currentTimeMillis()-startTime)+"\n");
-//                    }
                 }
                 else if(type == Type.EAGLE) {
-                    long startTime = System.currentTimeMillis();
                     stepEagle(completed);
-//                    if ( System.currentTimeMillis()-startTime > 50 ) {
-//                        System.out.print("Eagle Time: "+(System.currentTimeMillis()-startTime)+"\n");
-//                    }
                 }
                 else if(type == Type.STANDBY) {
                     if (completed.getSurvivor().isAlive()) {
@@ -235,13 +307,10 @@ public class SARPlane extends AbstractPlane {
                         nextRegion = null;
                         getWorld().getStandbyAvailable().add(this);
                     }
-//                    if(!setNextBlockRescue()) {
-//                        setType(Type.RESCUER);
-//                    }
                 }
                 else if(type == Type.RESCUER) {
-                    getBattery().consume(5);
-                    waitFor(600);
+                    getBattery().consume(searchPowerPenalty);
+                    waitFor(searchTimePenalty);
                     nextBlock.setState(Block.blockState.EXPLORED);
                     checkRegionExplored();
                     if(completed.hasSurvivor() && completed.getSurvivor().isAlive()) {
@@ -250,8 +319,8 @@ public class SARPlane extends AbstractPlane {
                     setNextBlockRescue();
                 }
                 else if(type == Type.BASIC) {
-                    getBattery().consume(5);
-                    waitFor(100);
+                    getBattery().consume(searchPowerPenalty);
+                    waitFor(searchTimePenalty);
                     if(completed.hasSurvivor() && completed.getSurvivor().isAlive()) {
                         triggerTaskCompleted(completed);
                     }
@@ -271,8 +340,8 @@ public class SARPlane extends AbstractPlane {
      * Actions performed by the plane whenever it is in Scout mode.
      */
     private void stepScout(Block completed) {
-        getBattery().consume(5);
-        waitFor(100);
+        getBattery().consume(searchPowerPenalty);
+        waitFor(searchTimePenalty);
         completed.setState(Block.blockState.EXPLORED);
         checkRegionExplored();
         if(completed.hasSurvivor() && completed.getSurvivor().isAlive()) {
@@ -343,8 +412,8 @@ public class SARPlane extends AbstractPlane {
      * Actions performed by the plane whenever it is in Eagle mode.
      */
     private void stepEagle(Block completed) {
-        getBattery().consume(5);
-        waitFor(600);
+        getBattery().consume(searchPowerPenalty);
+        waitFor(searchTimePenalty);
         completed.setState(Block.blockState.EXPLORED);
         checkRegionExplored();
         if(completed.hasSurvivor() && completed.getSurvivor().isAlive()) {
@@ -406,9 +475,10 @@ public class SARPlane extends AbstractPlane {
     @Override
     public void setSpeed(double speed) {
         super.setSpeed(speed);
+        // Section below only runs upon initialization to set the maximum speed
         if (this.maxSpeed < 0) {
             this.maxSpeed = speed;
-            super.setSpeed(maxSpeed/3);
+            super.setSpeed(maxSpeed*scoutSpeedPercentage);
         }
     }
 
@@ -474,7 +544,7 @@ public class SARPlane extends AbstractPlane {
         for (Region r:getWorld().getRegions()) {
             if (r.getState()== Region.regionState.UNASSIGNED) {
                 //TODO: Set this jump preference in Configuration
-                if (this.getLocation().getDistance(r.getCenter()) < 100) {
+                if (this.getLocation().getDistance(r.getCenter()) < scoutJumpDistance) {
                     regionsNear.add(r);
                 }
                 else {
@@ -565,7 +635,7 @@ public class SARPlane extends AbstractPlane {
             Block b = getWorld().getUnassignedBlocks().remove(rnd.nextInt(getWorld().getUnassignedBlocks().size()));
             if(crowdCheck(b)) {
                 //TODO: Set jump distance using Configuration
-                if(this.getLocation().getDistance(b.getCenter()) < 300) {
+                if(this.getLocation().getDistance(b.getCenter()) < eagleJumpDistance) {
                     blocksNear.add(b);
                 }
                 else {
@@ -679,8 +749,6 @@ public class SARPlane extends AbstractPlane {
         return true;
     }
 
-    private int getEagleCrowdDistance() { return eagleCrowdDistance; }
-
     protected void setNextBlockStandby(Block b) {
         nextBlock = b;
         nextRegion = getWorld().getRegions().get(b.getRegion());
@@ -773,8 +841,9 @@ public class SARPlane extends AbstractPlane {
             getWorld().removeTask(t);
             removeTask(t);
             taskCompleted(b);
-            getBattery().consume(10);
-            waitFor(600);
+            getBattery().consume((long)(getBattery().getEnergy()*rescuePowerPenalty));
+            final long timeLeft = getWorld().getDuration() - getWorld().getTime()%getWorld().getDuration();
+            waitFor((long)(timeLeft*rescueTimePenalty));
         }
         if (nextBlock == null) {
             Operator o = getWorld().getNearestOperator(getLocation());
@@ -798,8 +867,8 @@ public class SARPlane extends AbstractPlane {
         removeTask(t);
         taskCompleted(t);
         final long timeLeft = getWorld().getDuration() - getWorld().getTime()%getWorld().getDuration();
-        waitFor((long)(timeLeft*getWorld().getTimeRescuePenalty()));
-        getBattery().consume((long)(getBattery().getEnergy()*getWorld().getRescuePowerPenalty()));
+        waitFor((long)(timeLeft*rescueTimePenalty));
+        getBattery().consume((long)(getBattery().getEnergy()*rescuePowerPenalty));
         //TODO: change here!
 //        if (nextBlock == null) {
 //            Operator o = getWorld().getNearestOperator(getLocation());

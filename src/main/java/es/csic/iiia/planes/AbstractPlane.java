@@ -341,8 +341,8 @@ public abstract class AbstractPlane extends AbstractBehaviorAgent
             if (move()) {
                 if (nextTask.isAlive()) {
                     final long timeLeft = getWorld().getDuration() - getWorld().getTime()%getWorld().getDuration();
-                    waitFor((long)(timeLeft*getWorld().getTimeRescuePenalty()));
-                    battery.consume((long)(getBattery().getEnergy()*getWorld().getRescuePowerPenalty()));
+                    waitFor((long)(timeLeft*getWorld().getConfig().getRescueTimePenalty()));
+                    battery.consume((long)(getBattery().getEnergy()*getWorld().getConfig().getRescuePowerPenalty()));
                 }
                 final Task completed = nextTask;
                 nextTask = null;
@@ -383,7 +383,7 @@ public abstract class AbstractPlane extends AbstractBehaviorAgent
     public boolean move() {
         flightDistance += getSpeed();
         battery.consume(1);
-        angle = currentDestination.alpha;
+        angle = currentDestination.alpha+Math.PI;
         return getLocation().move(currentDestination);
     }
 

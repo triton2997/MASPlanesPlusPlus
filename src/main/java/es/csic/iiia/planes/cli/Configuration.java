@@ -39,7 +39,8 @@ package es.csic.iiia.planes.cli;
 import es.csic.iiia.bms.Factor;
 import es.csic.iiia.planes.*;
 import es.csic.iiia.planes.auctions.bidding.*;
-import es.csic.iiia.planes.evaluation.PercentageBatteryEvaluation;
+import es.csic.iiia.planes.liam.DistanceHeuristic;
+import es.csic.iiia.planes.liam.ManhattanBlockDistance;
 import es.csic.iiia.planes.operator_behavior.*;
 import it.univr.ia.planes.dsa.DSAPlane;
 import es.csic.iiia.planes.Battery;
@@ -52,6 +53,7 @@ import es.csic.iiia.planes.definition.DProblem;
 import es.csic.iiia.planes.evaluation.EvaluationStrategy;
 import es.csic.iiia.planes.evaluation.IndependentDistanceBatteryEvaluation;
 import es.csic.iiia.planes.evaluation.IndependentDistanceEvaluation;
+import es.csic.iiia.planes.evaluation.PercentageBatteryEvaluation;
 import es.csic.iiia.planes.idle.DoNothing;
 import es.csic.iiia.planes.idle.FlyTowardsOperator;
 import es.csic.iiia.planes.idle.FlyTowardsOperatorP;
@@ -79,7 +81,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.ser.std.StdArraySerializers;
 
 /**
  * Holds the configuration settings of the simulator.
@@ -144,6 +148,30 @@ public final class Configuration {
      */
     private Class<? extends EvaluationStrategy<Plane>> evaluationClass;
 
+    /**
+     * Time penalty for searching a block.
+     */
+    private long searchTimePenalty;
+
+    /**
+     * Power penalty for searching a block.
+     */
+    private long searchPowerPenalty;
+
+    /**
+     * Time penalty for completing a task.
+     */
+    private double rescueTimePenalty;
+
+    /**
+     * Power penalty for completing a task.
+     */
+    private double rescuePowerPenalty;
+
+    /* PERCENTAGE-BATTERY-EVALUATION specific stuff */
+    private double powerFactor;
+    private double timeFactor;
+
     /* AUCTIONS specific stuff */
     private int aucEvery;
     private BiddingRuleFactory aucBiddingRuleFactory;
@@ -172,6 +200,8 @@ public final class Configuration {
     private double scoutJumpDistance;
     private double eagleJumpDistance;
     private int eagleCrowdDistance;
+    private DistanceHeuristic crowdDistanceHeuristic;
+    private long rescueTime;
 
     private LinkedHashMap<String, String> values = new LinkedHashMap<String, String>();
     private CostFactorFactory<Factor<?>> msCostFactorFactory;
@@ -205,9 +235,28 @@ public final class Configuration {
         }
 
         evaluationClass = fetch(settings, getEvaluationClasses(), "task-evaluation");
+        if (values.get("task-evaluation").equals("percentage-battery-time")) {
+            //TODO: Fetch settings for power and time factors
+            powerFactor = Double.valueOf(settings.getProperty("power-factor"));
+            values.put("power-factor", String.valueOf(powerFactor));
+
+            timeFactor = Double.valueOf(settings.getProperty("time-factor"));
+            values.put("time-factor", String.valueOf(timeFactor));
+        }
         gui = fetch(settings, getBooleanValues(), "gui");
         quiet = fetch(settings, getBooleanValues(), "quiet");
 
+        searchPowerPenalty = Long.valueOf(settings.getProperty("search-power-penalty"));
+        values.put("search power-penalty", String.valueOf(searchPowerPenalty));
+
+        searchTimePenalty = Long.valueOf(settings.getProperty("search-time-penalty"));
+        values.put("search time-penalty", String.valueOf(searchTimePenalty));
+
+        rescuePowerPenalty = Double.valueOf(settings.getProperty("rescue-power-penalty"));
+        values.put("rescue power-penalty", String.valueOf(rescuePowerPenalty));
+
+        rescueTimePenalty = Double.valueOf(settings.getProperty("rescue-time-penalty"));
+        values.put("rescue time-penalty", String.valueOf(rescueTimePenalty));
 
         DProblem d = new DProblem();
         ObjectMapper mapper = new ObjectMapper();
@@ -306,7 +355,7 @@ public final class Configuration {
             }
         }
 
-        /*if (values.get("planes").equals("liam")) {
+        if (values.get("planes").equals("liam")) {
             eaglePower = Double.valueOf(settings.getProperty("eagle-power"));
             values.put("eagle-power", String.valueOf(eaglePower));
             if(eaglePower < 0 ||eaglePower > 1) {
@@ -317,6 +366,9 @@ public final class Configuration {
             values.put("standby-power", String.valueOf(standbyPower));
             if(standbyPower < 0 ||standbyPower > 1) {
                 throw new IllegalArgumentException("Standby power conversion level must be between 0 and 1.");
+            }
+            if(standbyPower > eaglePower) {
+                throw new IllegalArgumentException("Standby power level must be greater than Eagle power level");
             }
 
             scoutSpeed = Double.valueOf(settings.getProperty("scout-speed"));
@@ -330,7 +382,29 @@ public final class Configuration {
             if(eagleSpeed < 0 ||eagleSpeed > 1) {
                 throw new IllegalArgumentException("Scout speed level must be between 0 and 1.");
             }
-        }*/
+            if(eagleSpeed < scoutSpeed) {
+                throw new IllegalArgumentException("Eagle speed must be greater than Scout speed");
+            }
+
+            scoutJumpDistance = Double.valueOf(settings.getProperty("scout-jump"));
+            values.put("scout-jump", String.valueOf(scoutJumpDistance));
+            if(scoutJumpDistance <= 0) {
+                throw new IllegalArgumentException("Scout jump distance must be positive.");
+            }
+
+            eagleJumpDistance = Double.valueOf(settings.getProperty("eagle-jump"));
+            values.put("eagle-jump", String.valueOf(eagleJumpDistance));
+            if(eagleJumpDistance <= 0) {
+                throw new IllegalArgumentException("Eagle jump distance must be positive.");
+            }
+            eagleCrowdDistance = Integer.valueOf(settings.getProperty("eagle-crowd"));
+            values.put("eagle-crowd", String.valueOf(eagleCrowdDistance));
+
+            crowdDistanceHeuristic = fetch(settings, getDistanceHeuristics(),"distance-heuristic");
+
+            rescueTime = Long.valueOf(settings.getProperty("rescue-time"));
+            values.put("rescue-time", String.valueOf(rescueTime));
+        }
 
     }
 
@@ -515,6 +589,45 @@ public final class Configuration {
         return dsaEvaluationFunction;
     }
 
+    public int getEagleCrowdDistance() { return eagleCrowdDistance; }
+
+    public double getEaglePower() { return eaglePower; }
+
+    public double getStandbyPower() { return standbyPower; }
+
+    public double getScoutJumpDistance() { return scoutJumpDistance; }
+
+    public double getEagleJumpDistance() { return eagleJumpDistance; }
+
+    public double getScoutSpeed() { return scoutSpeed; }
+
+    public double getEagleSpeed() { return eagleSpeed; }
+
+    public long getSearchTimePenalty() {
+        return searchTimePenalty;
+    }
+
+    public long getSearchPowerPenalty() {
+        return searchPowerPenalty;
+    }
+
+    public double getRescueTimePenalty() {
+        return rescueTimePenalty;
+    }
+
+    public double getRescuePowerPenalty() {
+        return rescuePowerPenalty;
+    }
+
+    public double getPowerFactor() {
+        return powerFactor;
+    }
+
+    public double getTimeFactor() {
+        return timeFactor;
+    }
+
+    public long getRescueTime() { return rescueTime; }
 
     private Map<String, OperatorStrategy> getOperatorStrategies() {
         return new HashMap<String, OperatorStrategy>() {{
@@ -601,6 +714,12 @@ public final class Configuration {
     private Map<String, WorkloadFunctionFactory> getWorkloadFunctionFactories() {
         return new HashMap<String, WorkloadFunctionFactory>() {{
            put("k-alpha", new KAlphaFactory());
+        }};
+    }
+
+    private Map<String, DistanceHeuristic> getDistanceHeuristics() {
+        return new HashMap<String, DistanceHeuristic>() {{
+            put("manhattan", new ManhattanBlockDistance());
         }};
     }
 

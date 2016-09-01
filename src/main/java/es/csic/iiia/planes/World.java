@@ -38,6 +38,7 @@
 package es.csic.iiia.planes;
 
 import es.csic.iiia.planes.definition.DProblem;
+import es.csic.iiia.planes.cli.Configuration;
 import es.csic.iiia.planes.messaging.Message;
 
 import java.util.ArrayList;
@@ -170,13 +171,7 @@ public interface World extends Runnable {
 
     boolean sendStandby(Block b);
 
-    double getTimeRescuePenalty();
-
-    double getRescuePowerPenalty();
-
-    double getPowerFactor();
-
-    double getTimeFactor();
+    Configuration getConfig();
 
     /**
      * Get the current simulation time (in tenths of second).
