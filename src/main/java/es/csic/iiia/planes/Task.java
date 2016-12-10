@@ -52,6 +52,21 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Marc Pujol <mpujol at iiia.csic.es>
  */
 public class Task extends AbstractPositionedElement implements Drawable, Comparable {
+	
+	/**
+	 * Ebtesam
+     * Status whether the survivor 
+     * is found or not
+     */
+	private boolean isFound;
+	
+	public boolean isFound() {
+		return isFound;
+	}
+
+	public void setFound(boolean isFound) {
+		this.isFound = isFound;
+	}
 
     /**
      * Generator of unique identifiers.
@@ -99,6 +114,8 @@ public class Task extends AbstractPositionedElement implements Drawable, Compara
         //TODO: Make this dependent on settings
         expireTime = (long)(Math.random()*(2592000-360000))+360000;
         alive = true;
+        /** @author Ebtesam */
+        isFound = false;
     }
 
     /**
@@ -167,5 +184,7 @@ public class Task extends AbstractPositionedElement implements Drawable, Compara
         final Task other = (Task)t;
         return id - other.id;
     }
+
+
 
 }
