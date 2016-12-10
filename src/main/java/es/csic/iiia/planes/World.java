@@ -38,6 +38,7 @@
 package es.csic.iiia.planes;
 
 import es.csic.iiia.planes.definition.DProblem;
+import es.csic.iiia.planes.auctions.AuctionPlane;
 import es.csic.iiia.planes.cli.Configuration;
 import es.csic.iiia.planes.messaging.Message;
 
@@ -54,6 +55,9 @@ import java.util.List;
  */
 public interface World extends Runnable {
 
+	
+	public Plane getWinnerRescurer(Task t);
+	
     /**
      * Get the factory used to build elements for this simulation.
      *
@@ -169,7 +173,8 @@ public interface World extends Runnable {
 
     List<SARPlane> getStandbyAvailable();
 
-    boolean sendStandby(Block b);
+    /** @author Ebtesam */
+    SARPlane sendStandby(Block b);
 
     Configuration getConfig();
 
