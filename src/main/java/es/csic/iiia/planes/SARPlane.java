@@ -1,5 +1,6 @@
 package es.csic.iiia.planes;
 
+import es.csic.iiia.planes.Plane.Type;
 import es.csic.iiia.planes.liam.LIAMBehavior;
 
 import java.util.ArrayList;
@@ -108,7 +109,7 @@ public class SARPlane extends AbstractPlane {
     private Region nextRegion = null;
 
     /**
-     * Time in tenths of a second before plane switches
+     * Time in tenthes of a second before plane switches
      * to Rescue Type.
      */
     private long rescueTime;
@@ -197,9 +198,14 @@ public class SARPlane extends AbstractPlane {
     @Override
     public void setBattery(Battery battery) {
         super.setBattery(battery);
-        //TODO: Maybe just have method for getting configuration from factory
-        setEagleEnergy((long)(getWorld().getConfig().getEaglePower()*battery.getCapacity()));
-        setStandbyEnergy((long)(getWorld().getConfig().getStandbyPower()*battery.getCapacity()));
+        /**
+         * @author Ebtesam
+         * battery.getCapacity() is always zero
+         * It is Hard coded (9000), will fix it later
+         */
+        //TODO: Getting configuration from factory without hard coded
+        setEagleEnergy((long)(getWorld().getConfig().getEaglePower() * 9000));
+        setStandbyEnergy((long)(getWorld().getConfig().getStandbyPower() * 9000));
     }
 
     @Override
@@ -216,10 +222,20 @@ public class SARPlane extends AbstractPlane {
         //TODO: Make this time a set percentage of time in the configuration
         //Switch to rescuer at 75% of duration
         if (getWorld().getTime()%getWorld().getDuration() >= rescueTime && type != Type.RESCUER && type != Type.BASIC) {
+        	/** @author Ebtesam 
+        	 * If it is StandBy, remove it from StandBy available list
+        	 * */
+            if(type == Type.STANDBY)
+                getWorld().getStandbyAvailable().remove(this);
             setType(Type.RESCUER);
         }
         if (state == State.CHARGING) {
             if (type == Type.EAGLE || type == Type.STANDBY) {
+            	/** @author Ebtesam 
+            	 * If it is StandBy, remove it from StandBy available list
+            	 * */
+            	if(type == Type.STANDBY)
+                    getWorld().getStandbyAvailable().remove(this);
                 setType(Type.SCOUT);
             }
             getBattery().recharge(getRechargeRatio());
@@ -229,7 +245,7 @@ public class SARPlane extends AbstractPlane {
                 if(nextBlock != null) {
                     setDestination(nextBlock.getCenter());
                 }
-                else {
+                else { // if there is no assign block 
                     if (type == Type.SCOUT) {
                         if(setNextRegion()) {
                             setNextBlock(nextRegion);
@@ -242,6 +258,10 @@ public class SARPlane extends AbstractPlane {
                                 //Otherwise, they idle in place.
                                 nextRegion = null;
                                 nextBlock = null;
+                                /** @author Ebtesam 
+                                 * Add standBy to the list of available standBy
+                                 * */
+                                getWorld().getStandbyAvailable().add(this);
                             }
                         }
                     }
@@ -300,12 +320,11 @@ public class SARPlane extends AbstractPlane {
                     stepEagle(completed);
                 }
                 else if(type == Type.STANDBY) {
-                    if (completed.getSurvivor().isAlive()) {
-                        triggerTaskCompleted(completed);
-                        //TODO: Add plane to World's list of standby's available
-                        nextBlock = null;
-                        nextRegion = null;
-                        getWorld().getStandbyAvailable().add(this);
+                    	if (completed.getSurvivor().isAlive()) {
+                		    triggerTaskCompleted(completed);
+                		    nextBlock = null;
+                		    nextRegion = null;
+                    	
                     }
                 }
                 else if(type == Type.RESCUER) {
@@ -336,6 +355,7 @@ public class SARPlane extends AbstractPlane {
         idleAction();
     }
 
+
     /**
      * Actions performed by the plane whenever it is in Scout mode.
      */
@@ -347,7 +367,6 @@ public class SARPlane extends AbstractPlane {
         if(completed.hasSurvivor() && completed.getSurvivor().isAlive()) {
             nextRegion.taskFound();
             triggerTaskCompleted(completed);
-            //System.out.print("Scout:\nRescued a survivor!\n");
         }
 
         if(nextRegion.getState() == Region.regionState.EXPLORED) {
@@ -362,6 +381,10 @@ public class SARPlane extends AbstractPlane {
                     //Otherwise, they idle in place.
                     nextRegion = null;
                     nextBlock = null;
+                    /** @author Ebtesam 
+                     * Add Standby to the list of available StandBy
+                     * */
+                    getWorld().getStandbyAvailable().add(this);
                 }
             }
             else {
@@ -379,6 +402,10 @@ public class SARPlane extends AbstractPlane {
                         //Otherwise, they idle in place.
                         nextRegion = null;
                         nextBlock = null;
+                        /** @author Ebtesam 
+                         * Add standBy to the list of available standBy
+                         * */
+                        getWorld().getStandbyAvailable().add(this);
                     }
                 }
             }
@@ -401,6 +428,10 @@ public class SARPlane extends AbstractPlane {
                         //Otherwise, they idle in place.
                         nextRegion = null;
                         nextBlock = null;
+                        /** @author Ebtesam 
+                         * Add standBy to the list of available standBy
+                         * */
+                        getWorld().getStandbyAvailable().add(this);
                     }
                 }
             }
@@ -417,8 +448,14 @@ public class SARPlane extends AbstractPlane {
         completed.setState(Block.blockState.EXPLORED);
         checkRegionExplored();
         if(completed.hasSurvivor() && completed.getSurvivor().isAlive()) {
+            /** @author Ebtesam
+             * Check if there is an available Standby for rescue
+             * if not, Eagle do the rescue 
+             **/
             nextRegion.taskFound();
-            triggerTaskFound(completed);
+            getWorld().foundTask(completed.getSurvivor());
+            getWorld().sendStandby(completed);
+            triggerTaskCompleted(completed);
         }
 
         if (getBattery().getEnergy() <= standbyEnergy && type == Type.EAGLE) {
@@ -427,6 +464,10 @@ public class SARPlane extends AbstractPlane {
             //Otherwise, they idle in place, so we set the next destination to be null.
             nextRegion = null;
             nextBlock = null;
+            /** @author Ebtesam 
+             * Add standBy to the list of available standBy
+             * */
+            getWorld().getStandbyAvailable().add(this);
         }
         else if (!setNextBlockEagle()){
             setType(Type.STANDBY);
@@ -434,6 +475,10 @@ public class SARPlane extends AbstractPlane {
             //Otherwise, they idle in place, so we set the next destination to be null.
             nextRegion = null;
             nextBlock = null;
+            /** @author Ebtesam 
+             * Add standBy to the list of available standBy
+             * */
+            getWorld().getStandbyAvailable().add(this);
         }
     }
 
@@ -543,7 +588,6 @@ public class SARPlane extends AbstractPlane {
 
         for (Region r:getWorld().getRegions()) {
             if (r.getState()== Region.regionState.UNASSIGNED) {
-                //TODO: Set this jump preference in Configuration
                 if (this.getLocation().getDistance(r.getCenter()) < scoutJumpDistance) {
                     regionsNear.add(r);
                 }
@@ -615,7 +659,7 @@ public class SARPlane extends AbstractPlane {
      * This plane will fly in a straight line towards that location, until one
      * of the following happens:
      *   - It reaches (and thus completes) the given task.
-     *   - It runs out of battery (and therefore goes to recharse itself).
+     *   - It runs out of battery (and therefore goes to recharges itself).
      *   - A new "next region" is set by calling this method again.
      *
      */
@@ -761,7 +805,7 @@ public class SARPlane extends AbstractPlane {
      * This plane will fly in a straight line towards that location, until one
      * of the following happens:
      *   - It reaches (and thus completes) the given task.
-     *   - It runs out of battery (and therefore goes to recharge itself).
+     *   - It runs out of battery (and therefore goes to recharges itself).
      *   - A new "next region" is set by calling this method again.
      *
      */
@@ -826,32 +870,6 @@ public class SARPlane extends AbstractPlane {
     }
 
     /**
-     * TODO: Write this code for Eagle Planes.
-     * Record a task completion trigger any post-completion effects
-     *
-     * @param b block that has been completed
-     */
-    private void triggerTaskFound(Block b) {
-        Task t = b.getSurvivor();
-        getLog().log(Level.FINE, "{0} finds {1}", new Object[]{this, t});
-        getCompletedLocations().add(t.getLocation());
-        getWorld().foundTask(t);
-        //TODO: Change to set as discovered and send standby
-        if(!getWorld().sendStandby(b)) {
-            getWorld().removeTask(t);
-            removeTask(t);
-            taskCompleted(b);
-            getBattery().consume((long)(getBattery().getEnergy()*rescuePowerPenalty));
-            final long timeLeft = getWorld().getDuration() - getWorld().getTime()%getWorld().getDuration();
-            waitFor((long)(timeLeft*rescueTimePenalty));
-        }
-        if (nextBlock == null) {
-            Operator o = getWorld().getNearestOperator(getLocation());
-            setDestination(o.getLocation());
-        }
-    }
-
-    /**
      * Record a task completion trigger any post-completion effects
      *
      * @param b block in which task has been completed
@@ -860,7 +878,7 @@ public class SARPlane extends AbstractPlane {
         Task t = b.getSurvivor();
         getLog().log(Level.FINE, "{0} completes {1}", new Object[]{this, t});
         getCompletedLocations().add(t.getLocation());
-        if (getType() != Type.STANDBY) {
+        if (getType() != Type.STANDBY && getType() != Type.EAGLE) {
             getWorld().foundTask(t);
         }
         getWorld().removeTask(t);
@@ -869,7 +887,6 @@ public class SARPlane extends AbstractPlane {
         final long timeLeft = getWorld().getDuration() - getWorld().getTime()%getWorld().getDuration();
         waitFor((long)(timeLeft*rescueTimePenalty));
         getBattery().consume((long)(getBattery().getEnergy()*rescuePowerPenalty));
-        //TODO: change here!
 //        if (nextBlock == null) {
 //            Operator o = getWorld().getNearestOperator(getLocation());
 //            setDestination(o.getLocation());
