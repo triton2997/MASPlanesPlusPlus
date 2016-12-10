@@ -40,6 +40,7 @@ import es.csic.iiia.planes.*;
 import es.csic.iiia.planes.auctions.bidding.BiddingRule;
 import es.csic.iiia.planes.behaviors.neighbors.NeighborTracking;
 import es.csic.iiia.planes.cli.Configuration;
+import es.csic.iiia.planes.maxsum.distributed.MSPlane;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,7 +74,8 @@ public class AuctionPlane extends AbstractPlane {
 
         final Task current = getNextTask();
         final double newdist = getLocation().distance(t.getLocation());
-        if (current == null || newdist < getLocation().distance(current.getLocation())) {
+        if (current == null 
+        		|| newdist < getLocation().distance(current.getLocation())) {
             setNextTask(t);
         }
     }
@@ -191,7 +193,8 @@ public class AuctionPlane extends AbstractPlane {
     private void triggerTaskFound(Block b) {
         Task t = b.getSurvivor();
         getLog().log(Level.FINE, "{0} finds {1}", new Object[]{this, t});
-        getCompletedLocations().add(t.getLocation());
+        /** Ebtesam */
+        //getCompletedLocations().add(t.getLocation());
         //TODO: Change to set as discovered and put the location in the operator's list of survivors in need of rescue
         tasksFound.add(t);
         getWorld().foundTask(t);
@@ -249,9 +252,21 @@ public class AuctionPlane extends AbstractPlane {
                 getBattery().consume(5);
                 final Block completed = nextBlock;
                 nextBlock = null;
-                if(completed.hasSurvivor() && completed.getSurvivor().isAlive()) {
-                    triggerTaskFound(completed);
-                }
+            	/** @author Ebtesam 
+            	 *  If survivor is found, 
+            	 *  function getWinnerRescurer choose the rescuer plane
+            	 *  based on cost 
+            	 * */
+                Task task = completed.getSurvivor();
+                if(completed.hasSurvivor() && task.isAlive()) 
+                	if(!task.isFound()){
+                		triggerTaskFound(completed);
+                		task.setFound(true);
+                		AuctionPlane winner = (AuctionPlane) getWorld().getWinnerRescurer(task);
+                		winner.addTask(task,0);
+                		winner.nextBlock = completed;
+                		winner.step();
+                	} 
                 Operator o = getWorld().getNearestOperator(getLocation());
                 Location l = o.getLocation();
                 if (l.getDistance(getLocation()) <= getCommunicationRange()) {
