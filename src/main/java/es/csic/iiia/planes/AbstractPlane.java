@@ -44,6 +44,7 @@ import es.csic.iiia.planes.gui.Drawable;
 import es.csic.iiia.planes.gui.PlaneDrawer;
 import es.csic.iiia.planes.idle.IdleStrategy;
 import es.csic.iiia.planes.util.RotatingList;
+
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
@@ -340,13 +341,15 @@ public abstract class AbstractPlane extends AbstractBehaviorAgent
             setDestination(nextTask.getLocation());
             if (move()) {
                 if (nextTask.isAlive()) {
-                    final long timeLeft = getWorld().getDuration() - getWorld().getTime()%getWorld().getDuration();
-                    waitFor((long)(timeLeft*getWorld().getConfig().getRescueTimePenalty()));
-                    battery.consume((long)(getBattery().getEnergy()*getWorld().getConfig().getRescuePowerPenalty()));
+                	if(nextTask.isFound()){
+	                    final long timeLeft = getWorld().getDuration() - getWorld().getTime()%getWorld().getDuration();
+	                    waitFor((long)(timeLeft*getWorld().getConfig().getRescueTimePenalty()));
+	                    battery.consume((long)(getBattery().getEnergy()*getWorld().getConfig().getRescuePowerPenalty()));
+		                final Task completed = nextTask;
+		                nextTask = null;
+		                triggerTaskCompleted(completed);
+                	}
                 }
-                final Task completed = nextTask;
-                nextTask = null;
-                triggerTaskCompleted(completed);
             }
             return;
         }
@@ -459,6 +462,10 @@ public abstract class AbstractPlane extends AbstractBehaviorAgent
         tasks.add(task);
 
         taskAdded(task);
+    }
+    /** @author Ebtesam */
+    public void addTask(Task task,int i) {
+        tasks.add(task);
     }
 
     @Override
