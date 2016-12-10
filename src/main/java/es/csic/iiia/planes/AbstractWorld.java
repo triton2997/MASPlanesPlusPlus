@@ -41,8 +41,10 @@ import es.csic.iiia.planes.definition.DOperator;
 import es.csic.iiia.planes.definition.DPlane;
 import es.csic.iiia.planes.definition.DProblem;
 import es.csic.iiia.planes.definition.DStation;
+import es.csic.iiia.planes.auctions.AuctionPlane;
 import es.csic.iiia.planes.cli.Configuration;
 import es.csic.iiia.planes.messaging.Message;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -100,9 +102,29 @@ public abstract class AbstractWorld implements World {
 
     public List<SARPlane> getStandbyAvailable() { return standbyAvailable; }
 
-    public boolean sendStandby(Block b) {
+    /** @author Ebtesam 
+     * return the winner plane the will rescue
+     * the survivor 
+     */
+    public Plane getWinnerRescurer(Task t){
+    	double cost = Double.MAX_VALUE;
+    	Plane winner = null;
+    	for (Plane plane: planes) {
+    		if (plane.getCost(t) < cost) {
+    			winner = plane;
+    			cost = plane.getCost(t);
+    			}
+    		}
+    	return winner;
+    }
+    
+    /** @author Ebtesam 
+     * a slight modification 
+     * return the closest plane to the caller
+     */
+    public SARPlane sendStandby(Block b) {
         if (standbyAvailable.isEmpty()) {
-            return false;
+            return null;
         }
         else {
             double dist = Double.MAX_VALUE;
@@ -115,7 +137,7 @@ public abstract class AbstractWorld implements World {
             }
             standbyAvailable.remove(closest);
             closest.setNextBlockStandby(b);
-            return true;
+            return closest;
         }
     }
 
@@ -251,44 +273,49 @@ public abstract class AbstractWorld implements World {
         return space;
     }
 
-    @Override
-    public void run() {
+	@Override
+	public void run() {
 
-        for (Agent a : agents) {
-            a.initialize();
-        }
+		for (Agent a : agents) {
+			a.initialize();
+		}
 
-        for (time=0; time<duration || tasks.size() > 0; time++) {
-            LOG.fine("----------     TICK     ----------");
-            computeStep();
-            displayStep();
+		for (time = 0; time < duration || tasks.size() > 0; time++) {
+			LOG.fine("----------     TICK     ----------");
+			computeStep();
+			displayStep();
 
-            if (tasks.isEmpty()) {
-                break;
-            }
-            if (unassignedBlocks.isEmpty() && timeoutStart < 0) {
-                timeoutStart = time;
-            }
-            // TODO: Replace this maximum duration factor by something that detects if tasks are
-            // being completed or not.
-            if (time > duration*10 || ((time-timeoutStart) > 36000 && unassignedBlocks.isEmpty())) {
-                System.err.println("It looks like some tasks will never be completed: ");
-                for (Task t : tasks) {
-                    System.err.println("\t" + t);
-                }
-                break;
-            }
+			if (tasks.isEmpty()) {
+				break;
+			}
+			if (unassignedBlocks.isEmpty() && timeoutStart < 0) {
+				timeoutStart = time;
+			}
+			// TODO: Replace this maximum duration factor by something that
+			// detects if tasks are
+			// being completed or not.
+			if (time > duration
+					|| ((time - timeoutStart) > 36000 
+							&& unassignedBlocks.isEmpty())) {
+				System.err
+						.println("It looks like some tasks will never be completed: ");
+				for (Task t : tasks) {
+					System.err.println("\t" + t);
+				}
+				break;
+			}
 
-        }
+		}
 
-        for (Plane p : planes) {
-            stats.collect(p);
-        }
-        stats.display();
-    }
+		for (Plane p : planes) {
+			stats.collect(p);
+		}
+		stats.display();
+		stats.writeCSV();
+	}
 
     /**
-     * Computes a single simulation step (tenths of second).
+     * Computes a single simulation step (tenthes of second).
      *
      * This should give all of the simulation's actors the opportunity to
      * perform actions, by calling their {@link Agent#step()} methods.
