@@ -1,5 +1,6 @@
 =========
-MASPlanes
+MASPlanes++
+
 =========
 
 *MASPlanes* is a very simple UAV simulator, desgined to aid in the development and
