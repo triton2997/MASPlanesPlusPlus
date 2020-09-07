@@ -12,7 +12,7 @@ main problem addressed by this tool is finding a suitable UAV for each rescu tas
 Requirements
 ============
 
-*MASPlanes* is developed in ``java 1.6``, and it should run on any of the major platforms. You need the following dependencies to compile and run the project:
+*MASPlanes++* is developed in ``java 1.6``, and it should run on any of the major platforms. You need the following dependencies to compile and run the project:
 
 Windows installation
 
