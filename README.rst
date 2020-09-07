@@ -44,10 +44,10 @@ Usage
 =========
 
 In order to test the algorithm's behavior in a particular scenario, the said
-scenario must be first generated. This is, *MASPlanes* does not randomly generate
+scenario must be first generated. This is, *MASPlanes++* does not randomly generate
 scenarios when running. Instead, it includes a scenario generator that produces
 scenario descriptions. These descriptions can be saved to a file and then
-"solved" by *MASPlanes* using any of the implemented strategies. 
+"solved" by *MASPlanes++* using any of the implemented strategies. 
 
 Simulator
 ---------
