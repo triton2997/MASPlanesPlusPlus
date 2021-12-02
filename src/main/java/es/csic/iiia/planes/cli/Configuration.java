@@ -38,6 +38,7 @@ package es.csic.iiia.planes.cli;
 
 import es.csic.iiia.bms.Factor;
 import es.csic.iiia.planes.tutorial.TutorialPlane;
+import es.csic.iiia.planes.custom.CustomPlane;
 import it.univr.ia.planes.dsa.DSAPlane;
 import es.csic.iiia.planes.Battery;
 import es.csic.iiia.planes.DefaultBattery;
@@ -469,6 +470,7 @@ public final class Configuration {
            put("omniscient", OmniscientPlane.class);
            put("dsa", DSAPlane.class);
            put("tutorial", TutorialPlane.class);
+           put("custom", CustomPlane.class);
         }};
     }
 
