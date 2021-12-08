@@ -3,7 +3,7 @@ package es.csic.iiia.planes.custom;
 import es.csic.iiia.planes.Task;
 import es.csic.iiia.planes.messaging.AbstractMessage;
 
-public class BidMessage extends AbstractMessage {
+public class BidMessage extends AbstractMessage implements Comparable<BidMessage> {
 
     private double cost;
     private Task task;
@@ -19,6 +19,13 @@ public class BidMessage extends AbstractMessage {
 
     public Task getTask() {
         return this.task;
+    }
+
+    public Boolean compareTo(BidMessage m1){
+        if (m1.getCost() == this.cost)
+            return this.getSender().getId() - m1.getSender().getId();
+        
+        return this.cost - m1.getCost();
     }
 
 }

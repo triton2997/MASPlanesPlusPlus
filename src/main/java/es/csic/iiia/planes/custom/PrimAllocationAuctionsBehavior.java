@@ -8,14 +8,20 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 
 public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane> {
     
-    private Map<Task, List<BidMessage>> collectedBids =
-        new HashMap<Task, List<BidMessage>>();
+    private PriorityQueue<BidMessage> collectedBids =
+        new ArrayList<BidMessage>();
+    private PriorityQueue<BidMessage> taskQueue = 
+        new PriorityQueue<BidMessage>();
+    
+    private boolean isAuctionOngoing;
 
     public PrimAllocationAuctionsBehavior(CustomPlane agent) {
         super(agent);
+        isAuctionOngoing = false;
     }
 
     @Override
@@ -39,30 +45,25 @@ public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane
     public void on(OpenAuctionMessage auction) {
         CustomPlane plane = getAgent();
         Task t = auction.getTask();
-    
-        double cost = plane.getLocation().distance(t.getLocation());
-        BidMessage bid = new BidMessage(t, cost);
-        bid.setRecipient(auction.getSender());
-        plane.send(bid);
+        // On receiving OpenAuctionMessage, broadcast the bid to all robots
+        // double cost = plane.getLocation().distance(t.getLocation());
+        // BidMessage bid = new BidMessage(t, cost);
+        // bid.setRecipient(auction.getSender());
+        // plane.send(bid);
+        tasks.add(auction);
     }
 
     public void on(BidMessage bid) {
         Task t = bid.getTask();
 
-        // Ignore bids from planes that may run out of range
-        // if (!neighborTracker.isNeighbor(bid.getSender(), 1)) {
-        //     return;
+        // Add bid to the list of collected bids
+        // List<BidMessage> taskBids = collectedBids.get(t);
+        // if (taskBids == null) {
+        //     taskBids = new ArrayList<BidMessage>();
+        //     collectedBids.put(t, taskBids);
         // }
 
-        // Get the list of bids for this task, or create a new list if
-        // this is the first bid for this task.
-        List<BidMessage> taskBids = collectedBids.get(t);
-        if (taskBids == null) {
-            taskBids = new ArrayList<BidMessage>();
-            collectedBids.put(t, taskBids);
-        }
-
-        taskBids.add(bid);
+        collectedBids.add(bid);
     }
 
     public void on(ReallocateMessage msg) {
@@ -72,10 +73,18 @@ public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane
     @Override
     public void afterMessages() {
     // Open new auctions only once every four steps
-        if (getAgent().getWorld().getTime() % 4 == 0) {
+        // if (getAgent().getWorld().getTime() % 4 == 0) {
+        //     openAuctions();
+        // }
+        if (!isAuctionOngoing){
+            isAuctionOngoing = true;
             openAuctions();
         }
-
+        // if collectedBids is empty, send bids
+        if (collectedBids.isEmpty()){
+            OpenAuctionMessage msg = tasks.poll();
+            BidMessage bid = new BidMessage(msg.getTask(), cost);
+        }
         // Compute auction winners only if we have received bids in this step
         if (!collectedBids.isEmpty()) {
             computeAuctionWinners();
