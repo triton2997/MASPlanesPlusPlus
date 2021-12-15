@@ -21,7 +21,7 @@ public class BidMessage extends AbstractMessage implements Comparable<BidMessage
         return this.task;
     }
 
-    public Boolean compareTo(BidMessage m1){
+    public Boolean compareTo(BidMessage m1) {
         if (m1.getCost() == this.cost)
             return this.getSender().getId() - m1.getSender().getId();
         

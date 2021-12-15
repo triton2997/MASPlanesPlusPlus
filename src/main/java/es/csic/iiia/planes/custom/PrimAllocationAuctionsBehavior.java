@@ -55,7 +55,6 @@ public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane
 
     public void on(BidMessage bid) {
         Task t = bid.getTask();
-
         // Add bid to the list of collected bids
         // List<BidMessage> taskBids = collectedBids.get(t);
         // if (taskBids == null) {

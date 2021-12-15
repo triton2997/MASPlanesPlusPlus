@@ -44,7 +44,7 @@ public class MyTasksMST {
         }
         return min_t;
     }
-    public int calculateMST(){
+    public int calculateMST() {
         // Array to store constructed MST
         HashMap<Task, Task> parent = new HashMap();
         
@@ -58,7 +58,7 @@ public class MyTasksMST {
         int min_cost = INT_MAX
         int total_cost = 0;
         // Initialize all keys as INFINITE
-        for (Task t: myTasks){
+        for (Task t: myTasks) {
             parent.put(t, null);
             key.put(t, INT_MAX);
             mstSet.put(t, false);
