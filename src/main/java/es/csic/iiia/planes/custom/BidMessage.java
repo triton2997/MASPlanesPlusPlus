@@ -17,6 +17,10 @@ public class BidMessage extends AbstractMessage implements Comparable<BidMessage
         return cost;
     }
 
+    public void setCost(double cost) {
+        this.cost = cost;
+    }
+
     public Task getTask() {
         return this.task;
     }

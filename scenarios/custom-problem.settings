@@ -4,6 +4,8 @@
 # 30 days
 duration = 25920000
 
+planes=tutorial
+
 # 10x10 km
 width = 10000
 height = 10000
@@ -12,7 +14,7 @@ height = 10000
 planes = 3
 
 # This covers all space, so the planes can always communicate between them
-communication-range = 2000
+communication-range = 20000
 
 # 50 km/h
 plane-speed = 1.388888888888889
@@ -21,7 +23,7 @@ plane-speed = 1.388888888888889
 battery-capacity = 8640000
 
 # 1 task per minute
-task-frequency = 0.001666666666667
+task-frequency = 0.01666666666667
 
 # 4 crises
 crises = 4
