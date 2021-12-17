@@ -14,16 +14,20 @@ public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane
     
     private PriorityQueue<BidMessage> collectedBids;
     private PriorityQueue<BidMessage> taskQueue;
+    private ArrayList<Task> tasksWon;
     private MyTasksMST mst;
     
     private boolean isAuctionOngoing;
+    private int auctionTaskCount;
 
     public PrimAllocationAuctionsBehavior(CustomPlane agent) {
         super(agent);
         this.taskQueue = new PriorityQueue<BidMessage>();
         this.collectedBids = new PriorityQueue<BidMessage>();
+        this.tasksWon = new ArrayList<Task>();
         this.mst = new MyTasksMST(this);
-        isAuctionOngoing = false;
+        this.auctionTaskCount = 0;
+        this.isAuctionOngoing = false;
     }
 
     @Override
@@ -71,9 +75,14 @@ public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane
     
     private void openAuctions() {
         CustomPlane plane = getAgent();
-        for (Task t : plane.getTasks()) {
-            OpenAuctionMessage msg = new OpenAuctionMessage(t);
-            plane.send(msg);
+        if (plane.getTasks()) {
+            this.isAuctionOngoing = true;
+            for (Task t : plane.getTasks()) {
+                OpenAuctionMessage msg = new OpenAuctionMessage(t);
+                plane.send(msg);
+                plane.removeTask(t);
+                this.auctionTaskCount += 1;
+            }
         }
     }
 
@@ -85,6 +94,8 @@ public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane
         // BidMessage bid = new BidMessage(t, cost);
         // bid.setRecipient(auction.getSender());
         // plane.send(bid);
+        this.isAuctionOngoing = true;
+        this.auctionTaskCount += 1;
         BidMessage msg = this.addTaskToQueue(t);
         plane.send(msg);
     }
@@ -110,15 +121,22 @@ public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane
         // if (getAgent().getWorld().getTime() % 4 == 0) {
         //     openAuctions();
         // }
-        if (!isAuctionOngoing){
-            isAuctionOngoing = true;
+        this.auctionTaskCount -= 1;
+        
+        if (this.auctionTaskCount <= 0){
+            this.auctionTaskCount = 0;
+            this.isAuctionOngoing = false;
             openAuctions();
         }
+        // if (!isAuctionOngoing){
+        //     isAuctionOngoing = true;
+        //     openAuctions();
+        // }
         // if collectedBids is empty, initiate auctions
-        if (collectedBids.isEmpty()){
-            OpenAuctionMessage msg = tasks.poll();
-            BidMessage bid = new BidMessage(msg.getTask(), cost);
-        }
+        // if (collectedBids.isEmpty()){
+        //     OpenAuctionMessage msg = tasks.poll();
+        //     BidMessage bid = new BidMessage(msg.getTask(), cost);
+        // }
 
         // Compute auction winners only if we have received bids in this step
         if (!collectedBids.isEmpty()) {
