@@ -16,9 +16,13 @@ public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane
     private PriorityQueue<BidMessage> taskQueue;
     private ArrayList<Task> tasksWon;
     private MyTasksMST mst;
+    private GilbertElliottModel GEModel;
     
     private boolean isAuctionOngoing;
     private int auctionTaskCount;
+
+    // Change this parameter to use Bernoulli model with some probability value p
+    private double p = 1;
 
     public PrimAllocationAuctionsBehavior(CustomPlane agent) {
         super(agent);
@@ -28,7 +32,9 @@ public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane
         this.mst = new MyTasksMST(getAgent());
         this.auctionTaskCount = 0;
         this.isAuctionOngoing = false;
-        System.out.println("Behaviour initialized");
+        
+        // Update this line to use Gilbert-Elliott model with some p_gg and p_bb
+        this.GEModel = new GilbertElliottModel(0.9,0.9);
     }
 
     @Override
@@ -101,16 +107,36 @@ public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane
     }
 
     public void on(BidMessage bid) {
-        // if(b.isReceived()){
+
+        CustomPlane sender = (CustomPlane)bid.getSender();
+
+        // Bernoulli model
+        // Uncomment to use
+        if(getAgent() == sender) {
+            collectedBids.add(bid);
+        }
+        else if (BernoulliModel.bernoulli(p)) {
+            getAgent().incrementReceivedMessages();
+            collectedBids.add(bid);
+        }
+        else {
+            bid.setCost(Double.MAX_VALUE);
+            collectedBids.add(bid);
+        }
+
+        // Gilbert Elliott model
+        // Comment this and uncomment the above if you want to use bernoulli model
+        // if(getAgent() == sender) {
+        //     collectedBids.add(bid);
+        // }
+        // else if (GEModel.isReceived()) {
+        //     getAgent().incrementReceivedMessages();
         //     collectedBids.add(bid);
         // }
         // else {
-        //     collectedBids.add(new BidMessage());
+        //     bid.setCost(Double.MAX_VALUE);
+        //     collectedBids.add(bid);
         // }
-        CustomPlane sender = (CustomPlane)bid.getSender();
-        if(getAgent() != sender) 
-            getAgent().incrementReceivedMessages();
-        collectedBids.add(bid);
     }
 
     @Override
