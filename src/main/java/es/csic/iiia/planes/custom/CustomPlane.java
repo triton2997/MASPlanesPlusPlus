@@ -11,5 +11,4 @@ public class CustomPlane extends DefaultPlane {
         // addBehavior(new NeighborTracking(this));
         addBehavior(new PrimAllocationAuctionsBehavior(this));
     }
-
 }

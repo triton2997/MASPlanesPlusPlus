@@ -128,7 +128,9 @@ public class Operator extends AbstractMessagingAgent implements Drawable {
     @Override
     public void preStep() {}
 
-    private ArrayList<Task> pendingTasks = new ArrayList<Task>();
+    private ArrayList<DTask> pendingTasks = new ArrayList<DTask>();
+
+    private int pendingTaskCount = 0;
 
     /**
      * Single-step advance of this operator.
@@ -140,8 +142,8 @@ public class Operator extends AbstractMessagingAgent implements Drawable {
     @Override
     public void step() {
         while (nextTaskTime <= getWorld().getTime()) {
-            Task t = createTask(tasks.get(nextTask));
-            pendingTasks.add(t);
+            // Task t = createTask(tasks.get(nextTask));
+            pendingTasks.add(tasks.get(nextTask));
 
             tasks.set(nextTask, null);
             nextTask++;
@@ -151,12 +153,16 @@ public class Operator extends AbstractMessagingAgent implements Drawable {
             } else {
                 nextTaskTime = tasks.get(nextTask).getTime();
             }
+
+            this.pendingTaskCount += 1;
         }
 
-        if (isPlaneInRange() && !pendingTasks.isEmpty()) {
-            for (Task t : pendingTasks) {
+        if (isPlaneInRange() && !pendingTasks.isEmpty() && this.pendingTaskCount == 5) {
+            for (DTask dt : pendingTasks) {
+                Task t = createTask(dt);
                 strategy.submitTask(getWorld(), this, t);
             }
+            pendingTaskCount = 0;
             pendingTasks.clear();
         }
     }

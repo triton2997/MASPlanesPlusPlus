@@ -229,6 +229,7 @@ public abstract class AbstractBehaviorAgent extends AbstractMessagingAgent {
     public void send(Message message) {
         message.setSender(this);
         getWorld().sendMessage(message);
+        this.sentMessages += 1;
     }
 
     private void dispatchMessages() {

@@ -51,6 +51,10 @@ import java.util.List;
  */
 public class Nearest implements OperatorStrategy {
 
+    public Nearest() {
+        // System.out.println("Operator strategy - Nearest, initialized....");
+    }
+
     @Override
     public boolean submitTask(World w, Operator o, Task t) {
         final List<Plane> planes = w.getPlanes();
@@ -59,13 +63,8 @@ public class Nearest implements OperatorStrategy {
         double mind = Double.MAX_VALUE;
         Plane nearest = null;
         for (Plane p : planes) {
-            final double d = p.getLocation().getDistance(l);
-            if (d < mind) {
-                mind = d;
-                nearest = p;
-            }
+            p.queueTask(t);
         }
-        nearest.addTask(t);
         return true;
     }
 

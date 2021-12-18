@@ -1,7 +1,10 @@
 package es.csic.iiia.planes.custom;
 
 import es.csic.iiia.planes.Task;
+import es.csic.iiia.planes.AbstractPlane;
 import es.csic.iiia.planes.messaging.AbstractMessage;
+
+import java.lang.Math;
 
 public class BidMessage extends AbstractMessage implements Comparable<BidMessage> {
 
@@ -25,11 +28,14 @@ public class BidMessage extends AbstractMessage implements Comparable<BidMessage
         return this.task;
     }
 
-    public Boolean compareTo(BidMessage m1) {
-        if (m1.getCost() == this.cost)
-            return this.getSender().getId() - m1.getSender().getId();
+    public int compareTo(BidMessage m1) {
+        if (m1.getCost() == this.cost) {
+            CustomPlane me = (CustomPlane)this.getSender();
+            CustomPlane compared = (CustomPlane)m1.getSender();
+            return me.getId() - compared.getId();
+        }
         
-        return this.cost - m1.getCost();
+        return (int)Math.round(this.cost - m1.getCost());
     }
 
 }

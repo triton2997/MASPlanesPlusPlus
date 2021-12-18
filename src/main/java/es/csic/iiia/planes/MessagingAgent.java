@@ -77,4 +77,18 @@ public interface MessagingAgent extends Agent, Positioned, Comparable {
      */
     public void receive(Message message);
 
+    /**
+     * Get the total messages sent by this plane.
+     *
+     * @return total messages sent by this plane.
+     */
+    public int getSentMessages();
+
+    /**
+     * Get the total messages received by this plane.
+     *
+     * @return total messages received by this plane.
+     */
+    public int getReceivedMessages();
+
 }

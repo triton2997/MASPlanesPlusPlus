@@ -1,3 +1,7 @@
+package es.csic.iiia.planes.custom;
+
+import es.csic.iiia.planes.Task;
+
 public class MSTNode {
 
     private CustomPlane agent;
@@ -21,10 +25,16 @@ public class MSTNode {
         return this.task;
     }
 
-    public String getId() {
+    public int getId() {
         if(this.agent == null)
             return this.task.getId();
         return this.agent.getId();
+    }
+
+    public String getType() {
+        if(this.agent == null)
+            return "Task";
+        return "Agent";
     }
 
     public double getDistance(MSTNode t) {

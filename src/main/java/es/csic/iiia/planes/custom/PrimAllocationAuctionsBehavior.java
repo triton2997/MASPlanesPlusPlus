@@ -25,9 +25,10 @@ public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane
         this.taskQueue = new PriorityQueue<BidMessage>();
         this.collectedBids = new PriorityQueue<BidMessage>();
         this.tasksWon = new ArrayList<Task>();
-        this.mst = new MyTasksMST(this);
+        this.mst = new MyTasksMST(getAgent());
         this.auctionTaskCount = 0;
         this.isAuctionOngoing = false;
+        System.out.println("Behaviour initialized");
     }
 
     @Override
@@ -37,21 +38,23 @@ public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane
 
     @Override
     public void beforeMessages() {
-        collectedBids.clear();
     }
 
-    public void addBid(BidMessage bid) {
-        this.collectedBids.add(bid);
-    }
+    // public void addBid(BidMessage bid) {
+    //     this.collectedBids.add(bid);
+    // }
 
-    public BidMessage getNextBid() {
-        this.addBid(taskQueue.peek());
+    public BidMessage sendNextBid() {
+        // this.addBid(taskQueue.peek());
+        CustomPlane plane = getAgent();
+        plane.send(taskQueue.peek());
         return taskQueue.peek();
     }
 
     public BidMessage addTaskToQueue(Task t) {
         double task_add_cost = this.mst.calculateTaskAddCost(t);
-        BidMessage msg = new BidMessage(t, task_add_cost, this);
+        BidMessage msg = new BidMessage(t, task_add_cost);
+        msg.setSender(getAgent());
         this.taskQueue.add(msg);
 
         return msg;
@@ -60,14 +63,16 @@ public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane
 
     public void allocateTask(Task t) {
         getAgent().addTask(t);
+        for(BidMessage msg: this.taskQueue) {
+            msg.setCost(this.mst.calculateTaskAddCost(msg.getTask()));
+        }
     }
 
     public void removeTaskFromQueue(Task t) {
-        // System.out.printf("Removing task %s from agent %s\n", t.getId(), this.id);
         for(BidMessage msg: taskQueue){
             if(msg.getTask().getId() == t.getId()){
                 this.taskQueue.remove(msg);
-                break;        
+                break;
             }
         }
         // this.printTaskQueue();
@@ -75,110 +80,75 @@ public class PrimAllocationAuctionsBehavior extends AbstractBehavior<CustomPlane
     
     private void openAuctions() {
         CustomPlane plane = getAgent();
-        if (plane.getTasks()) {
+        if (plane.getQueuedTasks().isEmpty() == false) {
             this.isAuctionOngoing = true;
-            for (Task t : plane.getTasks()) {
-                OpenAuctionMessage msg = new OpenAuctionMessage(t);
-                plane.send(msg);
-                plane.removeTask(t);
-                this.auctionTaskCount += 1;
+            for (Task t : plane.getQueuedTasks()) {
+                BidMessage msg = this.addTaskToQueue(t);
             }
-        }
-    }
+            this.sendNextBid();
 
-    public void on(OpenAuctionMessage auction) {
-        CustomPlane plane = getAgent();
-        Task t = auction.getTask();
-        // On receiving OpenAuctionMessage, broadcast the bid to all robots
-        // double cost = plane.getLocation().distance(t.getLocation());
-        // BidMessage bid = new BidMessage(t, cost);
-        // bid.setRecipient(auction.getSender());
-        // plane.send(bid);
-        this.isAuctionOngoing = true;
-        this.auctionTaskCount += 1;
-        BidMessage msg = this.addTaskToQueue(t);
-        plane.send(msg);
+            // ArrayList<Task> tasksCopy = new ArrayList<Task>(plane.getQueuedTasks());
+            // for(Task t: tasksCopy) {
+            //     plane.removeTask(t);
+            // }
+            plane.getQueuedTasks().clear();
+            // System.out.println("Task Queue at " + getAgent());
+            // for(BidMessage msg: this.taskQueue) {
+            //     System.out.println(msg.getTask() + ": " + msg.getCost());
+            // }
+            // System.out.println();
+        }
     }
 
     public void on(BidMessage bid) {
-        // Task t = bid.getTask();
-        // Add bid to the list of collected bids
-        // List<BidMessage> taskBids = collectedBids.get(t);
-        // if (taskBids == null) {
-        //     taskBids = new ArrayList<BidMessage>();
-        //     collectedBids.put(t, taskBids);
+        // if(b.isReceived()){
+        //     collectedBids.add(bid);
         // }
+        // else {
+        //     collectedBids.add(new BidMessage());
+        // }
+        CustomPlane sender = (CustomPlane)bid.getSender();
+        if(getAgent() != sender) 
+            getAgent().incrementReceivedMessages();
         collectedBids.add(bid);
     }
 
-    // public void on(ReallocateMessage msg) {
-    //     getAgent().addTask(msg.getTask());
-    // }
-
     @Override
     public void afterMessages() {
-    // Open new auctions only once every four steps
-        // if (getAgent().getWorld().getTime() % 4 == 0) {
-        //     openAuctions();
-        // }
-        this.auctionTaskCount -= 1;
-        
-        if (this.auctionTaskCount <= 0){
-            this.auctionTaskCount = 0;
-            this.isAuctionOngoing = false;
-            openAuctions();
+        if (this.isAuctionOngoing == false) {
+            this.openAuctions();
         }
-        // if (!isAuctionOngoing){
-        //     isAuctionOngoing = true;
-        //     openAuctions();
-        // }
-        // if collectedBids is empty, initiate auctions
-        // if (collectedBids.isEmpty()){
-        //     OpenAuctionMessage msg = tasks.poll();
-        //     BidMessage bid = new BidMessage(msg.getTask(), cost);
-        // }
 
         // Compute auction winners only if we have received bids in this step
         if (!collectedBids.isEmpty()) {
+            // System.out.println(this.getAgent() + ": Computing next winner");
             computeAuctionWinners();
         }
     }
 
     public void computeAuctionWinners() {
         BidMessage winningBid = collectedBids.poll();
-        CustomPlane winningAgent = winningBid.getAgent();
-        // System.out.printf("Winner as calculated by %s is %s for task %s\n", this.id, winningAgent.getId(), winningBid.getTask().getId());
-        // winningAgent.allocateTask(winningBid);
-        // ReallocateMessage msg = new ReallocateMessage(winningBid.getTask());
-        // msg.setRecipient(winningAgent);
-        // plane.send(msg);
-        if(winningAgent == getAgent()) {
+        CustomPlane winningAgent = (CustomPlane)winningBid.getSender();
+        if (winningAgent == this.getAgent()) {
+            // System.out.println("Plane " + winningAgent.getId() + " won task " + winningBid.getTask().getId());
+            this.removeTaskFromQueue(winningBid.getTask());
             this.allocateTask(winningBid.getTask());
         }
         else {
+            // System.out.println(this.getAgent() + " removing task " + winningBid.getTask().getId());
             this.removeTaskFromQueue(winningBid.getTask());
         }
-        // this.printCollectedBids();
-        // for(BidMessage msg: collectedBids) {
-        //     msg.getAgent().removeTask(winningBid.getTask());
-        // }
         collectedBids.clear();
+        if (this.taskQueue.isEmpty()) {
+            this.isAuctionOngoing = false;
+            CustomPlane plane = getAgent();
+            // System.out.println("Tasks allocated to " + plane);
+            // for(Task t: plane.getTasks()) {
+            //     System.out.println(t);
+            // }
+        }
+        else {
+            this.sendNextBid();
+        }
     }
-
-    // private void reallocateTask(BidMessage winner) {
-    //     CustomPlane plane = getAgent();
-
-    //     // No need to reallocate when the task is already ours
-    //     if (winner.getSender() == plane) {
-    //         return;
-    //     }
-
-    //     // Remove the task from our list of pending tasks
-    //     plane.removeTask(winner.getTask());
-
-    //     // Send it to the auction's winner
-    //     ReallocateMessage msg = new ReallocateMessage(winner.getTask());
-    //     msg.setRecipient(winner.getSender());
-    //     plane.send(msg);
-    // }
 }

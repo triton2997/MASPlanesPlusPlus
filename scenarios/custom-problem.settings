@@ -1,14 +1,15 @@
 # These are all default values for the generator. You could run without
 # specifying any setting at all, and a problem of this type would be generated.
 
-# 30 days
-duration = 25920000
+# 10 mins
+duration = 864000
+# duration = 6000
 
 planes=tutorial
 
-# 10x10 km
-width = 10000
-height = 10000
+# 1x1 km
+width = 1000
+height = 1000
 
 # 10 planes, the default
 planes = 3
@@ -19,14 +20,18 @@ communication-range = 20000
 # 50 km/h
 plane-speed = 1.388888888888889
 
+operator-strategy=nearest
+
 # 1 day
-battery-capacity = 8640000
+battery-capacity = 865000
+# battery-capacity = 7000
 
 # 1 task per minute
-task-frequency = 0.01666666666667
+# task-frequency = 0.001666666666667
+task-frequency = 0.003333333333334
 
-# 4 crises
-crises = 4
+# 0 crises
+crises = 0
 
 # Tasks distributed in high-variance hotspots
 task-distribution = uniform

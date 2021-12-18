@@ -83,6 +83,13 @@ public interface Plane extends MessagingAgent {
     public void addTask(Task task);
 
     /**
+     * Adds a new task to the queue of tasks assigned to this plane but not yet auctioned and allocated
+     *
+     * @param task to add
+     */
+    public void queueTask(Task task);
+
+    /**
      * Removes a task from the list of tasks owned by this plane.
      *
      * Task removal triggers a reevaluation of the next task to be completed.
@@ -97,6 +104,13 @@ public interface Plane extends MessagingAgent {
      * @return list of tasks.
      */
     List<Task> getTasks();
+
+    /**
+     * Gets the list of tasks queued for auction at this plane.
+     *
+     * @return list of tasks.
+     */
+    List<Task> getQueuedTasks();
 
     /**
      * Set the plane's battery.
@@ -198,8 +212,6 @@ public interface Plane extends MessagingAgent {
      * @return the total flight distance of this plane.
      */
     public double getTotalDistance();
-
-
 
     /***************************************************************************
      * STUFF RELATED TO DRAWING

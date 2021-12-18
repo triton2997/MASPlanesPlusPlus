@@ -102,6 +102,11 @@ public abstract class AbstractPlane extends AbstractBehaviorAgent
     private List<Task> tasks = null;
 
     /**
+     * List of tasks queued for auction
+     */
+    private List<Task> queuedTasks = null;
+
+    /**
      * Next task to be completed by the plane
      */
     private Task nextTask = null;
@@ -143,6 +148,7 @@ public abstract class AbstractPlane extends AbstractBehaviorAgent
     public AbstractPlane(Location location) {
         super(location);
         tasks = new ArrayList<Task>();
+        queuedTasks = new ArrayList<Task>();
         completedLocations = new RotatingList<Location>(Plane.NUM_COMPLETED_TASKS);
     }
 
@@ -416,6 +422,11 @@ public abstract class AbstractPlane extends AbstractBehaviorAgent
         taskAdded(task);
     }
 
+    @Override
+    public void queueTask(Task task) {
+        queuedTasks.add(task);
+    }
+
     /**
      * Signals that a task has been removed.
      *
@@ -433,6 +444,11 @@ public abstract class AbstractPlane extends AbstractBehaviorAgent
     @Override
     public List<Task> getTasks() {
         return tasks;
+    }
+
+    @Override
+    public List<Task> getQueuedTasks() {
+        return queuedTasks;
     }
 
     @Override

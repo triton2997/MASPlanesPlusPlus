@@ -57,6 +57,16 @@ public abstract class AbstractMessagingAgent extends AbstractPositionedElement
      */
     private double communicationRange;
 
+    /**
+     * Messages sent by this agent
+     */
+    protected int sentMessages;
+
+    /**
+     * Messages received by this agent
+     */
+    protected int receivedMessages;
+
     public AbstractMessagingAgent(Location location) {
         super(location);
     }
@@ -69,6 +79,20 @@ public abstract class AbstractMessagingAgent extends AbstractPositionedElement
     @Override
     public void setCommunicationRange(double range) {
         this.communicationRange = range;
+    }
+
+    @Override
+    public int getSentMessages() {
+        return sentMessages;
+    }
+
+    @Override
+    public int getReceivedMessages() {
+        return receivedMessages;
+    }
+
+    public void incrementReceivedMessages() {
+        receivedMessages += 1;
     }
 
 }

@@ -203,6 +203,11 @@ public abstract class AbstractWorld implements World {
         for (Plane p : planes) {
             stats.collect(p);
         }
+
+        for (Agent a : agents) {
+            MessagingAgent ma = (MessagingAgent)a;
+            stats.collect(ma);
+        }
         stats.display();
     }
 

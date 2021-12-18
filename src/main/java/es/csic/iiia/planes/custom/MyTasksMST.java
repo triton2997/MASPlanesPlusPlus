@@ -2,6 +2,7 @@ package es.csic.iiia.planes.custom;
 import es.csic.iiia.planes.Task;
 
 import java.util.HashSet;
+import java.util.HashMap;
 
 public class MyTasksMST {
 
@@ -27,7 +28,10 @@ public class MyTasksMST {
 
     public double calculateTaskAddCost(Task t){
         // calculate current MST
-        double curr_mst = calculateMST();
+        double curr_mst = 0;
+        if (myTasks.size() > 1) {
+            curr_mst = calculateMST();
+        }
 
         // add task node to vertex list
         MSTNode node = new MSTNode(t);
@@ -44,9 +48,9 @@ public class MyTasksMST {
     }
     public MSTNode getMinTask(HashMap<MSTNode, Boolean> mstSet, HashMap<MSTNode, Double> key){
         double min_cost = Double.MAX_VALUE;
-        MSTNode min_t;
+        MSTNode min_t = null;
         for(MSTNode t: myTasks){
-            if(key.get(t) < min_cost && mstSet.get(t)){
+            if(key.get(t) < min_cost && mstSet.get(t) == false){
                 min_cost = key.get(t);
                 min_t = t;
             }
@@ -54,6 +58,7 @@ public class MyTasksMST {
         return min_t;
     }
     public double calculateMST() {
+        // System.out.printf("There are currently %d nodes\n", myTasks.size());
         // Array to store constructed MST
         HashMap<MSTNode, MSTNode> parent = new HashMap();
         
@@ -78,7 +83,7 @@ public class MyTasksMST {
         }
         // Always include first 1st vertex in MST.
         // Make key 0 so that this vertex is picked as first vertex.
-        key.put(this.agentNode, 0);
+        key.put(this.agentNode, 0.0);
         parent.put(this.agentNode, null); // First node is always root of MST
 
         // The MST will have V vertices
@@ -86,7 +91,7 @@ public class MyTasksMST {
             // Pick the minimum key vertex from the
             // set of vertices not yet included in MST
             MSTNode t = getMinTask(mstSet, key);
-
+            // System.out.printf("min task - Type - %s, id: %d\n", t.getType(), t.getId());
             // Add the picked vertex to the MST Set
             mstSet.put(t, true);
             total_cost += key.get(t);
@@ -100,13 +105,13 @@ public class MyTasksMST {
                 // mstSet[v] is false for vertices not yet included in MST
                 // Update the key only if graph[u][v] is smaller than key[v]
                 if (mstSet.get(t_oth) == false && t.getDistance(t_oth) < key.get(t_oth)){
-                    parent.get(t_oth) = t;
+                    parent.put(t_oth, t);
                     key.put(t_oth, t.getDistance(t_oth));
                 }
             }
         }
 
-        return 0;
+        return total_cost;
     }
 
 }

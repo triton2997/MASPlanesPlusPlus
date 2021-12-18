@@ -37,7 +37,11 @@
 package es.csic.iiia.planes;
 
 import es.csic.iiia.planes.util.TimeTracker;
+import es.csic.iiia.planes.custom.CustomPlane;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 
 /**
  *
@@ -48,6 +52,8 @@ class StatsCollector {
     private AbstractWorld world;
     private DescriptiveStatistics taskStats = new DescriptiveStatistics();
     private DescriptiveStatistics planeStats = new DescriptiveStatistics();
+    private DescriptiveStatistics sentMessageStats = new DescriptiveStatistics();
+    private DescriptiveStatistics receivedMessageStats = new DescriptiveStatistics();
 
     public StatsCollector(AbstractWorld w) {
         world = w;
@@ -62,28 +68,59 @@ class StatsCollector {
         planeStats.addValue(p.getTotalDistance());
     }
 
+    public void collect(MessagingAgent a) {
+        int sentMessages = a.getSentMessages();
+        int receivedMessages = a.getReceivedMessages();
+        if (a instanceof CustomPlane) {
+            sentMessageStats.addValue(a.getSentMessages());
+            receivedMessageStats.addValue(a.getReceivedMessages());
+        }
+    }
+
     public void display() {
         // Final stats
         StringBuilder buf = new StringBuilder();
-        buf.append("task_min=").append((int)taskStats.getMin()).append("\n")
-           .append("task_mean=").append((int)taskStats.getMean()).append("\n")
-           .append("task_max=").append((int)taskStats.getMax()).append("\n")
-           .append("task_p25=").append((int)taskStats.getPercentile(25)).append("\n")
-           .append("task_median=").append((int)taskStats.getPercentile(50)).append("\n")
-           .append("task_p75=").append((int)taskStats.getPercentile(75)).append("\n")
-        .append("\n");
+        // buf.append("task_min=").append((int)taskStats.getMin()).append("\n")
+        //    .append("task_mean=").append((int)taskStats.getMean()).append("\n")
+        //    .append("task_max=").append((int)taskStats.getMax()).append("\n")
+        //    .append("task_p25=").append((int)taskStats.getPercentile(25)).append("\n")
+        //    .append("task_median=").append((int)taskStats.getPercentile(50)).append("\n")
+        //    .append("task_p75=").append((int)taskStats.getPercentile(75)).append("\n")
+        // .append("\n");
 
         buf.append("plane_min=").append((long)(planeStats.getMin()/1000)).append("\n")
-           .append("plane_mean=").append((long)(planeStats.getMean()/1000)).append("\n")
+           //.append("plane_mean=").append((long)(planeStats.getMean()/1000)).append("\n")
            .append("plane_max=").append((long)(planeStats.getMax()/1000)).append("\n")
-           .append("plane_p25=").append((long)(planeStats.getPercentile(25)/1000)).append("\n")
-           .append("plane_median=").append((long)(planeStats.getPercentile(50)/1000)).append("\n")
-           .append("plane_p75=").append((long)(planeStats.getPercentile(75)/1000)).append("\n")
+           //.append("plane_p25=").append((long)(planeStats.getPercentile(25)/1000)).append("\n")
+           //.append("plane_median=").append((long)(planeStats.getPercentile(50)/1000)).append("\n")
+           //.append("plane_p75=").append((long)(planeStats.getPercentile(75)/1000)).append("\n")
+           .append("\n");
+        
+        buf.append("sent_messages_min=").append(sentMessageStats.getMin()).append("\n")
+           //.append("plane_mean=").append((long)(planeStats.getMean()/1000)).append("\n")
+           .append("sent_messages_max=").append(sentMessageStats.getMax()).append("\n")
+           //.append("plane_p25=").append((long)(planeStats.getPercentile(25)/1000)).append("\n")
+           //.append("plane_median=").append((long)(planeStats.getPercentile(50)/1000)).append("\n")
+           //.append("plane_p75=").append((long)(planeStats.getPercentile(75)/1000)).append("\n")
+           .append("\n");
+        
+        buf.append("received_messages_min=").append(receivedMessageStats.getMin()).append("\n")
+           //.append("plane_mean=").append((long)(planeStats.getMean()/1000)).append("\n")
+           .append("received_messages_max=").append(receivedMessageStats.getMax()).append("\n")
+           //.append("plane_p25=").append((long)(planeStats.getPercentile(25)/1000)).append("\n")
+           //.append("plane_median=").append((long)(planeStats.getPercentile(50)/1000)).append("\n")
+           //.append("plane_p75=").append((long)(planeStats.getPercentile(75)/1000)).append("\n")
            .append("\n");
 
-        buf.append("time=").append(TimeTracker.getUserTime()/1e6d);
 
+        // buf.append("time=").append(TimeTracker.getUserTime()/1e6d).append("\n");
         System.out.println(buf);
+        try {
+            BufferedWriter bw = new BufferedWriter(new FileWriter("F:\\GitHub repos\\MASPlanesPlusPlus\\outputs\\output.log", true));
+            bw.write(buf.toString());
+            bw.close();
+        }
+        catch (IOException e) {}
     }
 
 }
