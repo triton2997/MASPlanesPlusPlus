@@ -1,3 +1,7 @@
+Update with implementation of Prim Allocation algorithm for decentralized task allocation among a team of N mobile robots
+
+Implementation based on this paper: `Simple auctions with performance guarantees for multi-robot task allocation <https://ieeexplore.ieee.org/document/1389434>`_
+
 =========
 MASPlanes
 =========
